@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   Dimensions,
   Image,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,8 +16,9 @@ import Animated, {
   useSharedValue, 
   useAnimatedStyle, 
   withTiming, 
-  withRepeat, 
-  withSequence 
+  withSequence,
+  withDelay,
+  withSpring,
 } from 'react-native-reanimated';
 
 const { width, height } = Dimensions.get('window');
@@ -24,6 +26,7 @@ const { width, height } = Dimensions.get('window');
 export default function LandingPage() {
   const logoScale = useSharedValue(0.8);
   const fadeIn = useSharedValue(0);
+  const slideUp = useSharedValue(50);
 
   useEffect(() => {
     // Animate logo entrance
@@ -34,6 +37,7 @@ export default function LandingPage() {
     
     // Fade in content
     fadeIn.value = withTiming(1, { duration: 1000 });
+    slideUp.value = withSpring(0, { damping: 10, stiffness: 100 });
   }, []);
 
   const logoAnimatedStyle = useAnimatedStyle(() => {
@@ -45,6 +49,7 @@ export default function LandingPage() {
   const contentAnimatedStyle = useAnimatedStyle(() => {
     return {
       opacity: fadeIn.value,
+      transform: [{ translateY: slideUp.value }],
     };
   });
 
@@ -77,132 +82,153 @@ export default function LandingPage() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Hero Section */}
-      <LinearGradient
-        colors={['#BB0000', '#FF6B6B', '#FFD700']}
-        style={styles.heroSection}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={false}>
         
-        <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
-          <View style={styles.logoBackground}>
-            <Ionicons name="school" size={60} color="#fff" />
-          </View>
-        </Animated.View>
-
-        <Animated.View style={[styles.heroContent, contentAnimatedStyle]}>
-          <Text style={styles.heroTitle}>StudentLife AI</Text>
-          <Text style={styles.heroSubtitle}>Kenya Edition</Text>
-          <Text style={styles.heroDescription}>
-            Your AI-powered campus companion for academic excellence, 
-            financial wellness, and social connection
-          </Text>
-        </Animated.View>
-
-        {/* Floating Elements */}
-        <View style={styles.floatingElements}>
-          <View style={[styles.floatingIcon, { top: 100, right: 30 }]}>
-            <Ionicons name="book" size={20} color="#fff" />
-          </View>
-          <View style={[styles.floatingIcon, { top: 200, left: 40 }]}>
-            <Ionicons name="calculator" size={18} color="#fff" />
-          </View>
-          <View style={[styles.floatingIcon, { bottom: 150, right: 50 }]}>
-            <Ionicons name="people" size={22} color="#fff" />
-          </View>
-        </View>
-      </LinearGradient>
-
-      {/* Features Section */}
-      <Animated.View style={[styles.featuresSection, contentAnimatedStyle]}>
-        <Text style={styles.featuresTitle}>Everything you need to succeed</Text>
-        
-        <View style={styles.featuresGrid}>
-          {features.map((feature, index) => (
-            <View key={index} style={styles.featureCard}>
-              <View style={[styles.featureIcon, { backgroundColor: feature.color + '20' }]}>
-                <Ionicons name={feature.icon as any} size={28} color={feature.color} />
-              </View>
-              <Text style={styles.featureTitle}>{feature.title}</Text>
-              <Text style={styles.featureDescription}>{feature.description}</Text>
+        {/* Hero Section */}
+        <LinearGradient
+          colors={['#BB0000', '#FF6B6B', '#FFD700']}
+          style={styles.heroSection}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}>
+          
+          <Animated.View style={[styles.logoContainer, logoAnimatedStyle]}>
+            <View style={styles.logoBackground}>
+              <Ionicons name="school" size={60} color="#fff" />
             </View>
-          ))}
-        </View>
+          </Animated.View>
 
-        {/* Testimonial */}
-        <View style={styles.testimonialCard}>
-          <Image 
-            source={{ uri: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2' }}
-            style={styles.testimonialAvatar}
-          />
-          <View style={styles.testimonialContent}>
-            <Text style={styles.testimonialText}>
-              "StudentLife AI helped me improve my GPA by 0.5 points and saved me KSh 5,000 on textbooks!"
+          <Animated.View style={[styles.heroContent, contentAnimatedStyle]}>
+            <Text style={styles.heroTitle}>StudentLife AI</Text>
+            <Text style={styles.heroSubtitle}>Kenya Edition</Text>
+            <Text style={styles.heroDescription}>
+              Your AI-powered campus companion for academic excellence, 
+              financial wellness, and social connection
             </Text>
-            <Text style={styles.testimonialAuthor}>- Sarah W., University of Nairobi</Text>
+          </Animated.View>
+
+          {/* Floating Elements */}
+          <View style={styles.floatingElements}>
+            <Animated.View style={[styles.floatingIcon, styles.floatingIcon1, contentAnimatedStyle]}>
+              <Ionicons name="book" size={20} color="#fff" />
+            </Animated.View>
+            <Animated.View style={[styles.floatingIcon, styles.floatingIcon2, contentAnimatedStyle]}>
+              <Ionicons name="calculator" size={18} color="#fff" />
+            </Animated.View>
+            <Animated.View style={[styles.floatingIcon, styles.floatingIcon3, contentAnimatedStyle]}>
+              <Ionicons name="people" size={22} color="#fff" />
+            </Animated.View>
           </View>
+        </LinearGradient>
+
+        {/* Features Section */}
+        <View style={styles.featuresSection}>
+          <Animated.View style={contentAnimatedStyle}>
+            <Text style={styles.featuresTitle}>Everything you need to succeed</Text>
+            
+            <View style={styles.featuresGrid}>
+              {features.map((feature, index) => (
+                <Animated.View 
+                  key={index} 
+                  style={[
+                    styles.featureCard,
+                    useAnimatedStyle(() => ({
+                      opacity: withDelay(index * 200, withTiming(fadeIn.value, { duration: 600 })),
+                      transform: [{ 
+                        translateY: withDelay(index * 200, withSpring(slideUp.value, { damping: 10, stiffness: 100 }))
+                      }],
+                    }))
+                  ]}>
+                  <View style={[styles.featureIcon, { backgroundColor: feature.color + '20' }]}>
+                    <Ionicons name={feature.icon as any} size={28} color={feature.color} />
+                  </View>
+                  <Text style={styles.featureTitle}>{feature.title}</Text>
+                  <Text style={styles.featureDescription}>{feature.description}</Text>
+                </Animated.View>
+              ))}
+            </View>
+
+            {/* Testimonial */}
+            <View style={styles.testimonialCard}>
+              <Image 
+                source={{ uri: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=100&h=100&dpr=2' }}
+                style={styles.testimonialAvatar}
+              />
+              <View style={styles.testimonialContent}>
+                <Text style={styles.testimonialText}>
+                  "StudentLife AI helped me improve my GPA by 0.5 points and saved me KSh 5,000 on textbooks!"
+                </Text>
+                <Text style={styles.testimonialAuthor}>- Sarah W., University of Nairobi</Text>
+              </View>
+            </View>
+
+            {/* University Partnerships */}
+            <View style={styles.partnershipsSection}>
+              <Text style={styles.partnershipsTitle}>Trusted by students at</Text>
+              <View style={styles.universityLogos}>
+                <View style={styles.universityLogo}>
+                  <Text style={styles.universityText}>UoN</Text>
+                </View>
+                <View style={styles.universityLogo}>
+                  <Text style={styles.universityText}>KU</Text>
+                </View>
+                <View style={styles.universityLogo}>
+                  <Text style={styles.universityText}>JKUAT</Text>
+                </View>
+                <View style={styles.universityLogo}>
+                  <Text style={styles.universityText}>Moi</Text>
+                </View>
+              </View>
+            </View>
+          </Animated.View>
         </View>
 
-        {/* University Partnerships */}
-        <View style={styles.partnershipsSection}>
-          <Text style={styles.partnershipsTitle}>Trusted by students at</Text>
-          <View style={styles.universityLogos}>
-            <View style={styles.universityLogo}>
-              <Text style={styles.universityText}>UoN</Text>
-            </View>
-            <View style={styles.universityLogo}>
-              <Text style={styles.universityText}>KU</Text>
-            </View>
-            <View style={styles.universityLogo}>
-              <Text style={styles.universityText}>JKUAT</Text>
-            </View>
-            <View style={styles.universityLogo}>
-              <Text style={styles.universityText}>Moi</Text>
-            </View>
-          </View>
+        {/* Action Buttons */}
+        <View style={styles.actionSection}>
+          <Animated.View style={contentAnimatedStyle}>
+            <TouchableOpacity 
+              style={styles.primaryButton}
+              onPress={() => router.push('/auth/signup')}>
+              <LinearGradient
+                colors={['#BB0000', '#FF6B6B']}
+                style={styles.primaryGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}>
+                <Text style={styles.primaryButtonText}>Start Your Journey</Text>
+                <Ionicons name="arrow-forward" size={20} color="#fff" />
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.secondaryButton}
+              onPress={() => router.push('/auth/login')}>
+              <Text style={styles.secondaryButtonText}>Already have an account? Sign In</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.demoButton}
+              onPress={() => router.replace('/(tabs)')}>
+              <Ionicons name="play-circle" size={20} color="#BB0000" />
+              <Text style={styles.demoButtonText}>See How It Works</Text>
+            </TouchableOpacity>
+          </Animated.View>
         </View>
-      </Animated.View>
 
-      {/* Action Buttons */}
-      <Animated.View style={[styles.actionSection, contentAnimatedStyle]}>
-        <TouchableOpacity 
-          style={styles.primaryButton}
-          onPress={() => router.push('/auth/signup')}>
-          <LinearGradient
-            colors={['#BB0000', '#FF6B6B']}
-            style={styles.primaryGradient}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}>
-            <Text style={styles.primaryButtonText}>Start Your Journey</Text>
-            <Ionicons name="arrow-forward" size={20} color="#fff" />
-          </LinearGradient>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.secondaryButton}
-          onPress={() => router.push('/auth/login')}>
-          <Text style={styles.secondaryButtonText}>Already have an account? Sign In</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.demoButton}
-          onPress={() => router.replace('/(tabs)')}>
-          <Ionicons name="play-circle" size={20} color="#BB0000" />
-          <Text style={styles.demoButtonText}>See How It Works</Text>
-        </TouchableOpacity>
-      </Animated.View>
-
-      {/* Language Selector */}
-      <View style={styles.languageSelector}>
-        <TouchableOpacity style={styles.languageButton}>
-          <Ionicons name="language" size={16} color="#666" />
-          <Text style={styles.languageText}>English</Text>
-        </TouchableOpacity>
-        <Text style={styles.languageDivider}>|</Text>
-        <TouchableOpacity style={styles.languageButton}>
-          <Text style={styles.languageText}>Kiswahili</Text>
-        </TouchableOpacity>
-      </View>
+        {/* Language Selector */}
+        <View style={styles.languageSelector}>
+          <TouchableOpacity style={styles.languageButton}>
+            <Ionicons name="language" size={16} color="#666" />
+            <Text style={styles.languageText}>English</Text>
+          </TouchableOpacity>
+          <Text style={styles.languageDivider}>|</Text>
+          <TouchableOpacity style={styles.languageButton}>
+            <Text style={styles.languageText}>Kiswahili</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -212,15 +238,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
   heroSection: {
-    height: height * 0.5,
+    minHeight: height * 0.6,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
+    paddingVertical: 40,
     position: 'relative',
   },
   logoContainer: {
     marginBottom: 30,
+    zIndex: 2,
   },
   logoBackground: {
     width: 120,
@@ -231,9 +265,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 3,
     borderColor: 'rgba(255,255,255,0.3)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
   heroContent: {
     alignItems: 'center',
+    zIndex: 2,
+    maxWidth: width - 40,
   },
   heroTitle: {
     fontSize: 36,
@@ -241,12 +282,16 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
     marginBottom: 5,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   heroSubtitle: {
     fontSize: 18,
     color: '#fff',
     opacity: 0.9,
     marginBottom: 20,
+    fontWeight: '600',
   },
   heroDescription: {
     fontSize: 16,
@@ -254,12 +299,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 24,
     opacity: 0.9,
-    maxWidth: 300,
+    maxWidth: 320,
+    paddingHorizontal: 10,
   },
   floatingElements: {
     position: 'absolute',
     width: '100%',
     height: '100%',
+    zIndex: 1,
   },
   floatingIcon: {
     position: 'absolute',
@@ -270,22 +317,36 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  floatingIcon1: {
+    top: '25%',
+    right: '10%',
+  },
+  floatingIcon2: {
+    top: '45%',
+    left: '8%',
+  },
+  floatingIcon3: {
+    bottom: '30%',
+    right: '12%',
+  },
   featuresSection: {
-    flex: 1,
-    padding: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 40,
+    backgroundColor: '#f8f9fa',
   },
   featuresTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#36454F',
     textAlign: 'center',
-    marginBottom: 25,
+    marginBottom: 30,
+    lineHeight: 32,
   },
   featuresGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    marginBottom: 30,
+    marginBottom: 40,
   },
   featureCard: {
     width: (width - 50) / 2,
@@ -299,6 +360,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 5,
+    minHeight: 160,
   },
   featureIcon: {
     width: 60,
@@ -314,6 +376,7 @@ const styles = StyleSheet.create({
     color: '#36454F',
     textAlign: 'center',
     marginBottom: 8,
+    lineHeight: 22,
   },
   featureDescription: {
     fontSize: 12,
@@ -326,7 +389,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     padding: 20,
-    marginBottom: 25,
+    marginBottom: 30,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
@@ -367,6 +430,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
+    maxWidth: 280,
   },
   universityLogo: {
     width: 50,
@@ -375,6 +439,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
+    marginHorizontal: 5,
   },
   universityText: {
     fontSize: 10,
@@ -383,7 +448,8 @@ const styles = StyleSheet.create({
   },
   actionSection: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingVertical: 30,
+    backgroundColor: '#fff',
   },
   primaryButton: {
     borderRadius: 16,
@@ -434,7 +500,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingVertical: 20,
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#e0e0e0',
