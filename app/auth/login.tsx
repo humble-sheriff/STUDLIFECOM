@@ -13,34 +13,115 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import * as LocalAuthentication from 'expo-local-authentication';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
 
+  useEffect(() => {
+    checkBiometricAvailability();
+    loadSavedCredentials();
+  }, []);
+
+  const checkBiometricAvailability = async () => {
+    const hasHardware = await LocalAuthentication.hasHardwareAsync();
+    const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+    setBiometricAvailable(hasHardware && isEnrolled);
+  };
+
+  const loadSavedCredentials = async () => {
+    try {
+      const savedEmail = await AsyncStorage.getItem('savedEmail');
+      const savedRememberMe = await AsyncStorage.getItem('rememberMe');
+      
+      if (savedEmail && savedRememberMe === 'true') {
+        setEmail(savedEmail);
+        setRememberMe(true);
+      }
+    } catch (error) {
+      console.log('Error loading saved credentials:', error);
+    }
+  };
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
+    // Check for account lockout
+    if (failedAttempts >= 5) {
+      Alert.alert('Account Locked', 'Too many failed attempts. Please try again later.');
+      return;
+    }
+
     setIsLoading(true);
     
-    // Simulate login process
+    // Simulate login validation
     setTimeout(() => {
       setIsLoading(false);
-      router.replace('/(tabs)');
+      
+      // Simulate login success/failure
+      const loginSuccess = email.includes('@') && password.length >= 6;
+      
+      if (loginSuccess) {
+        if (rememberMe) {
+          AsyncStorage.setItem('savedEmail', email);
+          AsyncStorage.setItem('rememberMe', 'true');
+        }
+        setFailedAttempts(0);
+        router.replace('/(tabs)');
+      } else {
+        setFailedAttempts(prev => prev + 1);
+        Alert.alert('Login Failed', 'Invalid email or password');
+      }
     }, 1500);
   };
 
+  const handleBiometricLogin = async () => {
+    try {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: 'Login with your biometric',
+        fallbackLabel: 'Use password instead',
+      });
+
+      if (result.success) {
+        router.replace('/(tabs)');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Biometric authentication failed');
+    }
+  };
   const handleForgotPassword = () => {
+    if (!email) {
+      Alert.alert('Enter Email', 'Please enter your email address first');
+      return;
+    }
+    
     Alert.alert(
       'Reset Password',
-      'Password reset link will be sent to your email address.',
-      [{ text: 'OK' }]
+      `Password reset link will be sent to ${email}`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Send Link', onPress: () => {
+          Alert.alert('Email Sent', 'Check your email for password reset instructions');
+        }}
+      ]
     );
+  };
+
+  const handleSocialLogin = (provider: string) => {
+    Alert.alert(`${provider} Login`, `Logging in with ${provider}...`);
+    // Simulate social login
+    setTimeout(() => {
+      router.replace('/(tabs)');
+    }, 1500);
   };
 
   return (
@@ -106,6 +187,16 @@ export default function Login() {
             <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
           </TouchableOpacity>
 
+          {/* Remember Me */}
+          <View style={styles.rememberContainer}>
+            <TouchableOpacity 
+              style={styles.checkbox}
+              onPress={() => setRememberMe(!rememberMe)}>
+              {rememberMe && <Ionicons name="checkmark" size={16} color="#BB0000" />}
+            </TouchableOpacity>
+            <Text style={styles.rememberText}>Remember me</Text>
+          </View>
+
           <TouchableOpacity 
             style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
             onPress={handleLogin}
@@ -126,10 +217,14 @@ export default function Login() {
           </TouchableOpacity>
 
           {/* Biometric Login */}
-          <TouchableOpacity style={styles.biometricButton}>
-            <Ionicons name="finger-print" size={24} color="#BB0000" />
-            <Text style={styles.biometricText}>Use Fingerprint</Text>
-          </TouchableOpacity>
+          {biometricAvailable && (
+            <TouchableOpacity 
+              style={styles.biometricButton}
+              onPress={handleBiometricLogin}>
+              <Ionicons name="finger-print" size={24} color="#BB0000" />
+              <Text style={styles.biometricText}>Use Biometric Login</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Social Login */}
@@ -141,11 +236,15 @@ export default function Login() {
           </View>
 
           <View style={styles.socialButtons}>
-            <TouchableOpacity style={styles.socialButton}>
+            <TouchableOpacity 
+              style={styles.socialButton}
+              onPress={() => handleSocialLogin('Google')}>
               <Ionicons name="logo-google" size={24} color="#DB4437" />
               <Text style={styles.socialButtonText}>Google</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.socialButton}>
+            <TouchableOpacity 
+              style={styles.socialButton}
+              onPress={() => handleSocialLogin('Facebook')}>
               <Ionicons name="logo-facebook" size={24} color="#4267B2" />
               <Text style={styles.socialButtonText}>Facebook</Text>
             </TouchableOpacity>
@@ -258,6 +357,25 @@ const styles = StyleSheet.create({
   loadingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+  },
+  rememberContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: '#BB0000',
+    borderRadius: 4,
+    marginRight: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rememberText: {
+    fontSize: 14,
+    color: '#36454F',
   },
   biometricButton: {
     flexDirection: 'row',
