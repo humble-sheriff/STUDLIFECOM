@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import * as SMS from 'expo-sms';
 
 interface FormData {
   firstName: string;
@@ -24,10 +25,14 @@ interface FormData {
   course: string;
   password: string;
   confirmPassword: string;
+  isVerified: boolean;
+  verificationCode: string;
 }
 
 export default function SignUp() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [sentCode, setSentCode] = useState('');
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
@@ -37,10 +42,13 @@ export default function SignUp() {
     course: '',
     password: '',
     confirmPassword: '',
+    isVerified: false,
+    verificationCode: '',
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const universities = [
     'University of Nairobi',
@@ -90,14 +98,55 @@ export default function SignUp() {
       return;
     }
 
-    if (currentStep < 3) {
+    if (currentStep === 1 && !formData.isVerified) {
+      sendVerificationCode();
+      return;
+    }
+
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
     } else {
       handleSignUp();
     }
   };
 
+  const sendVerificationCode = async () => {
+    if (!formData.phone) {
+      Alert.alert('Error', 'Please enter your phone number');
+      return;
+    }
+
+    setIsVerifying(true);
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setSentCode(code);
+
+    // Simulate SMS sending
+    setTimeout(() => {
+      setIsVerifying(false);
+      Alert.alert(
+        'Verification Code Sent',
+        `A 6-digit code has been sent to ${formData.phone}. For demo purposes, the code is: ${code}`,
+        [{ text: 'OK' }]
+      );
+    }, 1500);
+  };
+
+  const verifyCode = () => {
+    if (formData.verificationCode === sentCode) {
+      setFormData(prev => ({ ...prev, isVerified: true }));
+      Alert.alert('Success', 'Phone number verified successfully!');
+      setCurrentStep(2);
+    } else {
+      Alert.alert('Error', 'Invalid verification code');
+    }
+  };
+
   const handleSignUp = async () => {
+    if (!acceptedTerms) {
+      Alert.alert('Error', 'Please accept the terms and conditions');
+      return;
+    }
+
     setIsLoading(true);
     
     // Simulate signup process
@@ -105,8 +154,8 @@ export default function SignUp() {
       setIsLoading(false);
       Alert.alert(
         'Success!',
-        'Your account has been created successfully. Please verify your email.',
-        [{ text: 'OK', onPress: () => router.replace('/auth/login') }]
+        'Your account has been created successfully!',
+        [{ text: 'Continue', onPress: () => router.push('/auth/onboarding') }]
       );
     }, 2000);
   };
@@ -122,9 +171,50 @@ export default function SignUp() {
 
   const renderStep1 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Personal Information</Text>
-      <Text style={styles.stepSubtitle}>Let's start with your basic details</Text>
+      <Text style={styles.stepTitle}>
+        {formData.isVerified ? 'Personal Information' : 'Phone Verification'}
+      </Text>
+      <Text style={styles.stepSubtitle}>
+        {formData.isVerified ? 'Let\'s start with your basic details' : 'Verify your phone number'}
+      </Text>
 
+      {!formData.isVerified ? (
+        <>
+          <View style={styles.inputContainer}>
+            <Ionicons name="call" size={20} color="#666" style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Phone number (+254...)"
+              placeholderTextColor="#999"
+              value={formData.phone}
+              onChangeText={(value) => updateFormData('phone', value)}
+              keyboardType="phone-pad"
+            />
+          </View>
+
+          {sentCode && (
+            <View style={styles.inputContainer}>
+              <Ionicons name="lock-closed" size={20} color="#666" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Enter 6-digit code"
+                placeholderTextColor="#999"
+                value={formData.verificationCode}
+                onChangeText={(value) => updateFormData('verificationCode', value)}
+                keyboardType="numeric"
+                maxLength={6}
+              />
+            </View>
+          )}
+
+          {sentCode && (
+            <TouchableOpacity style={styles.verifyButton} onPress={verifyCode}>
+              <Text style={styles.verifyButtonText}>Verify Code</Text>
+            </TouchableOpacity>
+          )}
+        </>
+      ) : (
+        <>
       <View style={styles.inputRow}>
         <View style={[styles.inputContainer, { flex: 1, marginRight: 10 }]}>
           <Ionicons name="person" size={20} color="#666" style={styles.inputIcon} />
@@ -175,6 +265,8 @@ export default function SignUp() {
           keyboardType="phone-pad"
         />
       </View>
+        </>
+      )}
     </View>
   );
 
@@ -246,6 +338,73 @@ export default function SignUp() {
   );
 
   const renderStep3 = () => (
+    <View style={styles.stepContainer}>
+      <Text style={styles.stepTitle}>Academic Information</Text>
+      <Text style={styles.stepSubtitle}>Tell us about your studies</Text>
+
+      <View style={styles.inputContainer}>
+        <Ionicons name="school" size={20} color="#666" style={styles.inputIcon} />
+        <TextInput
+          style={styles.input}
+          placeholder="Select University"
+          placeholderTextColor="#999"
+          value={formData.university}
+          onChangeText={(value) => updateFormData('university', value)}
+        />
+      </View>
+
+      <View style={styles.universityList}>
+        {universities.map((uni, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[
+              styles.optionItem,
+              formData.university === uni && styles.selectedOption
+            ]}
+            onPress={() => updateFormData('university', uni)}>
+            <Text style={[
+              styles.optionText,
+              formData.university === uni && styles.selectedOptionText
+            ]}>
+              {uni}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Ionicons name="book" size={20} color="#666" style={styles.inputIcon} />
+        <TextInput
+          style={styles.input}
+          placeholder="Course/Program"
+          placeholderTextColor="#999"
+          value={formData.course}
+          onChangeText={(value) => updateFormData('course', value)}
+        />
+      </View>
+
+      <View style={styles.courseList}>
+        {courses.map((course, index) => (
+          <TouchableOpacity
+            key={index}
+            style={[
+              styles.courseChip,
+              formData.course === course && styles.selectedCourseChip
+            ]}
+            onPress={() => updateFormData('course', course)}>
+            <Text style={[
+              styles.courseChipText,
+              formData.course === course && styles.selectedCourseChipText
+            ]}>
+              {course}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+
+  const renderStep4 = () => (
     <View style={styles.stepContainer}>
       <Text style={styles.stepTitle}>Secure Your Account</Text>
       <Text style={styles.stepSubtitle}>Create a strong password</Text>
@@ -323,8 +482,10 @@ export default function SignUp() {
       </View>
 
       <View style={styles.termsContainer}>
-        <TouchableOpacity style={styles.checkbox}>
-          <Ionicons name="checkmark" size={16} color="#fff" />
+        <TouchableOpacity 
+          style={[styles.checkbox, acceptedTerms && styles.checkedBox]}
+          onPress={() => setAcceptedTerms(!acceptedTerms)}>
+          {acceptedTerms && <Ionicons name="checkmark" size={16} color="#fff" />}
         </TouchableOpacity>
         <Text style={styles.termsText}>
           I agree to the <Text style={styles.termsLink}>Terms of Service</Text> and{' '}
@@ -357,6 +518,7 @@ export default function SignUp() {
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
+          {currentStep === 4 && renderStep4()}
         </ScrollView>
 
         {/* Action Buttons */}
@@ -366,15 +528,16 @@ export default function SignUp() {
             onPress={handleNext}
             disabled={!validateStep(currentStep) || isLoading}>
             <LinearGradient
-              colors={!validateStep(currentStep) || isLoading ? ['#ccc', '#ccc'] : ['#BB0000', '#FF6B6B']}
+              colors={!validateStep(currentStep) || isLoading || isVerifying ? ['#ccc', '#ccc'] : ['#BB0000', '#FF6B6B']}
               style={styles.nextGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}>
-              {isLoading ? (
+              {isLoading || isVerifying ? (
                 <Text style={styles.nextButtonText}>Creating Account...</Text>
               ) : (
                 <Text style={styles.nextButtonText}>
-                  {currentStep === 3 ? 'Create Account' : 'Next'}
+                  {currentStep === 1 && !formData.isVerified ? 'Send Code' : 
+                   currentStep === 4 ? 'Create Account' : 'Next'}
                 </Text>
               )}
             </LinearGradient>
@@ -560,6 +723,18 @@ const styles = StyleSheet.create({
     color: '#666',
     marginLeft: 8,
   },
+  verifyButton: {
+    backgroundColor: '#228B22',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 15,
+  },
+  verifyButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   termsContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -569,11 +744,15 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 4,
-    backgroundColor: '#BB0000',
+    borderWidth: 2,
+    borderColor: '#BB0000',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
     marginTop: 2,
+  },
+  checkedBox: {
+    backgroundColor: '#BB0000',
   },
   termsText: {
     flex: 1,
