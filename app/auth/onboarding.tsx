@@ -13,7 +13,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import * as ImagePicker from 'expo-image-picker';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 
@@ -71,17 +70,25 @@ export default function Onboarding() {
     'Social Events',
   ];
 
-  const pickImage = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setData(prev => ({ ...prev, profilePhoto: result.assets[0].uri }));
-    }
+  const pickImage = () => {
+    // Simulate image selection for demo purposes
+    Alert.alert(
+      'Select Profile Photo',
+      'In the full version, you would be able to select a photo from your gallery or take a new one.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Use Demo Photo', 
+          onPress: () => {
+            // Use a placeholder image URL for demo
+            setData(prev => ({ 
+              ...prev, 
+              profilePhoto: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=200&h=200&dpr=2'
+            }));
+          }
+        },
+      ]
+    );
   };
 
   const togglePreference = (preference: string) => {
